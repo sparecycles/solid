@@ -1,23 +1,28 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="lib/timbre.js" ></script>
+    <script src="lib/timbre.dev.js" ></script>
     <script src="lib/subcollider.js" ></script>
     <script src="src/collide.js" ></script>
+    <script src="src/sound.js" ></script>
     <script src="src/game.js" ></script>
     <style>
       #canvas {
         width: 512px;
         height: 512px;
+        display: inline-block;
+        border: 2px inset #CCC;
       }
     </style>
   </head>
   <body>
-    <canvas id="canvas">
+    <center>
+      <canvas id="canvas">
+    </center>
     <script>Game.load();</script>
     <script>
       function beatbox() {
-        T("audio").load("/timbre.js/misc/audio/drumkit.wav", function() {
+        T("audio").load("drumkit.wav", function() {
           var BD  = this.slice(   0,  500).set({bang:false});
           var SD  = this.slice( 500, 1000).set({bang:false});
           var HH1 = this.slice(1000, 1500).set({bang:false, mul:0.2});
@@ -149,7 +154,7 @@
           o: [460, 880, 2800]
         }, freq, synth, f1, f2, f3;
 
-        freq = 174.61412048339844;
+        freq = 165.61412048339844;
         freq = T("+.kr", freq, T("sin.kr", {
           freq: 3,
           mul: 0.8
@@ -244,7 +249,6 @@
           ).play();
         });
       }
-      reich();
     </script>
   </body>
 </html>

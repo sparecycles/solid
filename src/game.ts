@@ -1,4 +1,6 @@
 /// <reference path="collide.ts" />
+/// <reference path="sound.ts" />
+
 module Game {
 
     var collision: Collide.Collision = {
@@ -53,13 +55,13 @@ module Game {
                 collision_attributes: 1
             }, {
                 collision_data_index: 3,
-                collision_attributes: 1
+                collision_attributes: 1 | 2
             }, {
                 collision_data_index: 1,
                 collision_attributes: 1
             }, {
                 collision_data_index: 3,
-                collision_attributes: 1
+                collision_attributes: 1 | 2
             }],
         ],
         tiles: [
@@ -200,43 +202,60 @@ module Game {
         event.preventDefault();
     });
 
+    module CollisionAttributes {
+        export var SOLID = 1;
+        export var STEPS = 2;
+    }
+
+    function moveRect(rect: Collide.Rect, delta: { x: number; y: number; }) {
+        rect.left += delta.x;
+        rect.right += delta.x;
+        rect.top += delta.y;
+        rect.bottom += delta.y;
+    }
 
     function tick() {
         /*if(player.vy == 0 && pad.up) {
             player.vy = -8;
             pad.up = false;
         }*/
-        
+
         if(player.vx > 0) {
             player.vx >>= 1;
         } else {
             player.vx = -((-player.vx) >> 1);
         }
 
-        if(player.vy > 0) {
-            player.vy >>= 1;
-        } else {
-            player.vy = -((-player.vy) >> 1);
-        }
-
         if(pad.left) {
-            player.vx = Math.max(player.vx-2, -1);
+            player.vx = Math.max(player.vx-ftofp(1), -ftofp(3));
         }
         if(pad.right) {
-            player.vx = Math.min(player.vx+2, +1);
+            player.vx = Math.min(player.vx+ftofp(1), +ftofp(3));
         }
-        if(pad.up) {
-            player.vy = Math.max(player.vy-2, -1);
-        }
-        if(pad.down) {
-            player.vy = Math.min(player.vy+2, +1);
+        if(pad.up && player.collisionInfo.down) {
+            player.vy =  player.vy-ftofp(6);
+            player.collisionInfo.down = 0;
+            Sound.sfx('jump');
         }
 
+        if(!player.collisionInfo.down) {
+            player.vy = Math.min(player.vy+ftofp(0.3), ftofp(3));
+        }
+        player.subpixel.x += player.vx;
+        player.subpixel.y += player.vy;
+
+        var motion = {
+            x: fptoi(player.subpixel.x),
+            y: fptoi(player.subpixel.y)
+        };
+
+        var delta = { x: motion.x, y: motion.y };
         
-        //player.vy = Math.min(player.vy+1, 3);
+        player.subpixel.x &= FPMASK;
+        player.subpixel.y &= FPMASK;
 
-        var delta = { x: player.vx, y: player.vy };
         var result = { x: 0, y: 0 };
+
         Collide.collide({
             collision: collision,
             rect: player.rect,
@@ -245,24 +264,97 @@ module Game {
             mask: 1
         });
 
-        if(result.x) player.vx = 0;
-        if(result.y) player.vy = 0;
+        if((result.x & CollisionAttributes.STEPS))
+        {
+            var delta = { x: 0, y: -1 };
+            var ignore = { x: 0, y: 0 };
+            if(!Collide.collide({
+                collision: collision,
+                rect: player.rect,
+                delta: delta,
+                result: ignore,
+                mask: 1
+            })) {
+                moveRect(player.rect, delta);
 
-        player.rect.left += delta.x;
-        player.rect.right += delta.x;
-        player.rect.top += delta.y;
-        player.rect.bottom += delta.y;
+                delta = { x: motion.x, y: motion.y };
+
+                Collide.collide({
+                    collision: collision,
+                    rect: player.rect,
+                    delta: delta,
+                    result: result,
+                    mask: 1
+                });
+            }
+        }
+
+        moveRect(player.rect, delta);
+
+        if(player.collisionInfo.down & CollisionAttributes.STEPS) {
+            var suck = { x: 0, y: 30 };
+
+            if(Collide.collide({
+                collision: collision,
+                rect: player.rect,
+                delta: suck,
+                result: result,
+                mask: 1
+            }) && suck.y > 0) {
+                moveRect(player.rect, suck);
+            }
+
+        }
+
+
+        player.collisionInfo.left = 0;
+        player.collisionInfo.right = 0;
+        player.collisionInfo.up = 0;
+        player.collisionInfo.down = 0;
+        
+        if (player.vx < 0)
+            player.collisionInfo.left = result.x;
+        
+        if (player.vx > 0)
+            player.collisionInfo.left = result.x;
+        
+        if (player.vy < 0)
+            player.collisionInfo.up = result.y;
+        
+        if (player.vy > 0)
+            player.collisionInfo.down = result.y;
+
+        if(result.x) player.vx = 0, player.subpixel.x = 0;
+        if(result.y) player.vy = 0, player.subpixel.y = 0;
+
     }
+
+    function fptoi(x: number) {
+        return x < 0 ? -((-x) >> FPSHIFT) : x >> FPSHIFT;
+    }
+
+    function itofp(x: number) {
+        return x < 0 ? -((-x) << FPSHIFT) : x << FPSHIFT;
+    }
+
+    function ftofp(x: number) {
+        return (x*(1<<FPSHIFT)) | 0;
+    }
+
+    var FPSHIFT = 4;
+    var FPMASK = 0xF;
 
     var player = {
         rect: {
-            left: 250,
-            right: 250 + 8,
-            top: 300,
-            bottom: 300 + 8
+            left: 40,
+            right: 40 + 8,
+            top: 200,
+            bottom: 200 + 8
         },
+        collisionInfo: { up: 0, left: 0, right: 0, down: 0 },
         color: 'red',
         vx: 0,
-        vy: 0
+        vy: 0,
+        subpixel: { x: 0, y: 0 }
     };
 }

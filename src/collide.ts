@@ -96,8 +96,8 @@ module Collide {
 		var rect = options.rect;
 		var result: boolean = false;
 		var collision = options.collision;
-		var dx = options.delta.x;
-		var dy = options.delta.y;
+		var dx = options.delta.x | 0;
+		var dy = options.delta.y | 0;
 		var current_x = 0;
 		var current_y = 0;
 		var remaining_x = dx;
