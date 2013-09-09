@@ -98,14 +98,19 @@ module Game {
 
     var WIDTH = 512, HEIGHT = 512;
 
-    export function load() {
+    export function load(cb) {
         var canvasElement = <HTMLCanvasElement>document.querySelector("#canvas");
         canvasElement.width = WIDTH;
         canvasElement.height = HEIGHT;
         ctx = canvasElement.getContext('2d');
         ctx.setTransform(1, 0, 0, 1, 0, 0);
 
+        return Sound.load(cb);
+    }
+
+    export function start() {
         var time = Date.now();
+
         function play() {
             var now = Date.now();
             var dt = now - time;
@@ -214,12 +219,65 @@ module Game {
         rect.bottom += delta.y;
     }
 
-    function tick() {
-        /*if(player.vy == 0 && pad.up) {
-            player.vy = -8;
-            pad.up = false;
-        }*/
+    module World {
+        export var environment = collision;
+        export var obstacles: {
+            collision: Collide.Collision;
+            x: number;
+            y: number;
+        }[] = [];
 
+        export function collide(info: {
+            rect: Collide.Rect;
+            delta: { x: number; y: number; };
+            mask: number;
+            result?: { 
+                x: number;
+                y: number;
+            };
+        }) {  
+            var collided = false;
+            var flags = { x: 0, y: 0 };
+            var result = { x: 0, y: 0 };
+
+            if(Collide.collide({
+                collision: environment,
+                rect: info.rect,
+                delta: info.delta,
+                result: result,
+                mask: info.mask
+            })) {
+                collided = true;
+                if (result.x) flags.x = result.x;
+                if (result.y) flags.y = result.y;
+            }
+
+            obstacles.forEach((obstacle) => {
+                var result = { x: 0, y: 0 };
+    
+                if(World.collide({
+                    rect: info.rect,
+                    delta: info.delta,
+                    result: result,
+                    mask: info.mask,
+                    offset: obstacle
+                })) {
+                    collided = true;
+                    if (result.x) flags.x = result.x;
+                    if (result.y) flags.y = result.y;
+                }
+            });
+
+            if(info.result) {
+                info.result.x |= flags.x;
+                info.result.y |= flags.y;
+            }
+            return collided;
+        }
+    };
+
+
+    function movePlayer() {
         if(player.vx > 0) {
             player.vx >>= 1;
         } else {
@@ -229,18 +287,20 @@ module Game {
         if(pad.left) {
             player.vx = Math.max(player.vx-ftofp(1), -ftofp(3));
         }
+        
         if(pad.right) {
             player.vx = Math.min(player.vx+ftofp(1), +ftofp(3));
         }
+
         if(pad.up && player.collisionInfo.down) {
-            player.vy =  player.vy-ftofp(6);
-            player.collisionInfo.down = 0;
+            player.vy =  -ftofp(5);
+            player.subpixel.y = 0;
+            player.collisionInfo.down = null;
             Sound.sfx('jump');
         }
 
-        if(!player.collisionInfo.down) {
-            player.vy = Math.min(player.vy+ftofp(0.3), ftofp(3));
-        }
+        player.vy = Math.min(player.vy+ftofp(0.3), ftofp(3));
+
         player.subpixel.x += player.vx;
         player.subpixel.y += player.vy;
 
@@ -254,33 +314,29 @@ module Game {
         player.subpixel.x &= FPMASK;
         player.subpixel.y &= FPMASK;
 
-        var result = { x: 0, y: 0 };
+        var result: any = { };
 
-        Collide.collide({
-            collision: collision,
+        World.collide({
             rect: player.rect,
             delta: delta,
             result: result,
             mask: 1
         });
 
-        if((result.x & CollisionAttributes.STEPS))
+        if(result.x & CollisionAttributes.STEPS)
         {
-            var delta = { x: 0, y: -1 };
-            var ignore = { x: 0, y: 0 };
-            if(!Collide.collide({
-                collision: collision,
+            delta = { x: 0, y: -1 };
+
+            if(!World.collide({
                 rect: player.rect,
                 delta: delta,
-                result: ignore,
                 mask: 1
             })) {
                 moveRect(player.rect, delta);
 
                 delta = { x: motion.x, y: motion.y };
 
-                Collide.collide({
-                    collision: collision,
+                World.collide({
                     rect: player.rect,
                     delta: delta,
                     result: result,
@@ -292,10 +348,9 @@ module Game {
         moveRect(player.rect, delta);
 
         if(player.collisionInfo.down & CollisionAttributes.STEPS) {
-            var suck = { x: 0, y: 30 };
+            var suck = { x: 0, y: 3 };
 
-            if(Collide.collide({
-                collision: collision,
+            if(World.collide({
                 rect: player.rect,
                 delta: suck,
                 result: result,
@@ -303,30 +358,32 @@ module Game {
             }) && suck.y > 0) {
                 moveRect(player.rect, suck);
             }
-
         }
 
+        if (motion.x < 0) {
+            player.collisionInfo.left = result.x;
+            player.collisionInfo.right = 0;
+        } else if(motion.x > 0) {
+            player.collisionInfo.left = 0;
+            player.collisionInfo.right = result.x;            
+        }
 
-        player.collisionInfo.left = 0;
-        player.collisionInfo.right = 0;
-        player.collisionInfo.up = 0;
-        player.collisionInfo.down = 0;
-        
-        if (player.vx < 0)
-            player.collisionInfo.left = result.x;
-        
-        if (player.vx > 0)
-            player.collisionInfo.left = result.x;
-        
-        if (player.vy < 0)
+        if (motion.y < 0) {
             player.collisionInfo.up = result.y;
-        
-        if (player.vy > 0)
+            player.collisionInfo.down = 0;
+        } else if(motion.y > 0) {
+            player.collisionInfo.up = 0;
             player.collisionInfo.down = result.y;
+        }
 
-        if(result.x) player.vx = 0, player.subpixel.x = 0;
-        if(result.y) player.vy = 0, player.subpixel.y = 0;
-
+        if(result.x) {
+            player.vx = 0;
+            player.subpixel.x = 0;
+        }
+        if(result.y) {
+            player.vy = 0;
+            player.subpixel.y = 0;
+        }
     }
 
     function fptoi(x: number) {
@@ -348,13 +405,22 @@ module Game {
         rect: {
             left: 40,
             right: 40 + 8,
-            top: 200,
-            bottom: 200 + 8
+            top: 150,
+            bottom: 150 + 8
         },
-        collisionInfo: { up: 0, left: 0, right: 0, down: 0 },
+        collisionInfo: {
+            up: <any>null,
+            left: <any>null,
+            right: <any>null,
+            down: <any>null
+        },
         color: 'red',
         vx: 0,
         vy: 0,
         subpixel: { x: 0, y: 0 }
     };
+    
+    function tick() {
+        movePlayer();
+    }
 }

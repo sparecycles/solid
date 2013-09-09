@@ -1,4 +1,5 @@
-declare var T : any;
+declare var T: any, timbre: any;
+
 /*
 {
     (type: string, options?: object, any...: input[]): any;
@@ -66,14 +67,88 @@ module Sound {
         }
     }
 
-    class SFX {
-        static jump() {
-            var xline = T("param", { value: 500 }).linTo(1000, ".5sec");
-            var freq = T("sin", { freq: xline, mul: 10 });
+    module SFXData {
+        export enum SoundFlags {
+            Common = 1,
+            Rare = 2,
+            Small = 4,
+            Large = 8
+        };
 
-            return T("env", {table: [.4, [1, 500], [0, 200]]},
-                        T("sin", {freq: freq })).bang(); 
+        interface SFX {
+            (): any;
+        };
+
+        function shouldRecord(recording_flags: number) { return true; };
+
+        export function sample(recording_flags: number, sound: SFX) {
+            if(shouldRecord(recording_flags)) {
+                return record(sound);
+            } else {
+                return () => sound();
+            }
         }
+
+        var recording_queue = [];
+
+        function record(sound) {
+            var buffer;
+
+            recording_queue.push(function (next) {
+                timbre.rec(function(output) {
+                    var t = sound();
+                    var done = false;
+                    output.send(t);
+                    T("timeout", { timeout: "1s" }, () => {
+                        if(!done) {
+                            t.pause();
+                            output.done();
+                            done = true;
+                        }
+                    });
+                    t.on("ended", function() {
+                        if (!done) {
+                            output.done();
+                            done = true;
+                        }
+                    });
+                }).then((result) => {
+                    buffer = result;
+                    next();
+                });
+            });
+
+            return () => T("buffer", { buffer: buffer });
+        }
+
+        export function recordSounds(cb) {
+            function recordNext() {
+                if(recording_queue.length == 0) {
+                    cb();
+                } else {
+                    recording_queue.pop()(function() { 
+                        setTimeout(recordNext, 1);
+                    });
+                }
+            }
+            recordNext();
+        }
+    }
+
+    module SFX {
+        export var jump = SFXData.sample(SFXData.SoundFlags.Common | SFXData.SoundFlags.Small, () => {
+            var xline = T("param", { value: 300 }).linTo(700, ".5sec") ;
+
+            var tone = T("env", {table: [.7, [1, ".3sec"], [0, ".2sec"]]},
+                        T("sin", {freq: xline, mul: 2})).bang();
+            return tone;            
+        });
+
+        export var attack = SFXData.sample(SFXData.SoundFlags.Common | SFXData.SoundFlags.Small, () => {
+            var tone = T("env", {table: [.7, [1, ".1sec"], [0, ".1sec"]]},
+                        T("pink")).bang();
+            return tone;            
+        });
     }
 
     export function sfx(name: string) {
@@ -81,5 +156,13 @@ module Sound {
             Core.playSFX(SFX[name]());
         }
     }
+    
+    var next: Function;
+
+    export function load(cb) {
+        SFXData.recordSounds(cb);
+    }
+
+
 
 }

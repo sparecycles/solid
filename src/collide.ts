@@ -32,20 +32,6 @@ module Collide {
 		bottom: number;
 	}
 
-	export interface CollsionInfo {
-		collision: Collision;
-		direction: number;
-		tileIndex: number;
-		enterExitIndex: number;
-		minDent: number;
-		attribute_mask: any;
-		result: {
-			occured: boolean;
-			attributes: number;
-			dent: number;
-		};
-	}
-
 	export enum CollisionDirection {
 		Left,
 		Right,
@@ -86,22 +72,35 @@ module Collide {
 				x: number;
 				y: number;
 			};
-			result: {
+			result?: {
+				x: number;
+				y: number;
+			};
+			offset?: {
 				x: number;
 				y: number;
 			};
 			mask: number;
 		}
 	): boolean {
+		// initialize collision params for x and y motions
 		var rect = options.rect;
 		var result: boolean = false;
 		var collision = options.collision;
 		var dx = options.delta.x | 0;
 		var dy = options.delta.y | 0;
-		var current_x = 0;
-		var current_y = 0;
 		var remaining_x = dx;
 		var remaining_y = dy;
+		var offset_x = 0;
+		var offset_y = 0;
+
+		if(options.offset) {
+			offset_x = -options.offset.x;
+			offset_y = -options.offset.y;
+		}
+
+		var current_x = offset_x;
+		var current_y = offset_y;
 
 		var collision_direction_x: number;
 		var collision_direction_y: number;
@@ -125,6 +124,7 @@ module Collide {
 		var do_collision_params_x = new DoCollisionParams(collision, collision_direction_x, options.mask);
 		var do_collision_params_y = new DoCollisionParams(collision, collision_direction_y, options.mask);
 
+		// initialize inline bresenham line variables
 		var b_tile_dx = remaining_x;
 		var b_tile_dy = remaining_y;
 		var b_tile_dx_abs = b_tile_dx > 0 ? (b_tile_dx + 15) >> 4 : (-b_tile_dx + 15) >> 4;
@@ -140,12 +140,12 @@ module Collide {
 			choice();
 		}
 
+		options.delta.x = current_x - offset_x;
+		options.delta.y = current_y - offset_y;
+
 		return result;
 
 		function choice() {
-			// initialize collision params for x and y motions
-
-			// initialize inline bresenham line variables
 
 			// reentry point for bresenham selector.
 			// the bresenham selector chooses whether to
@@ -196,7 +196,7 @@ module Collide {
 				delta = 16 - (current_tile_x & 0xF);
 				if (delta > remaining_x) delta = remaining_x;
 				dent = (current_tile_x & 0xF) + delta;
-				min_dent = rect.right - (tile_x << 4);
+				min_dent = rect.right + offset_x - (tile_x << 4) ;
 			} else {
 				var current_tile_x = (current_x + rect.left);
 				tile_x = current_tile_x >> 4;
@@ -204,7 +204,7 @@ module Collide {
 				if (0 == delta) delta = 16, tile_x--;
 				if (delta > -remaining_x) delta = -remaining_x;
 				dent = ((16 - current_tile_x) & 0xF) + delta;
-				min_dent = (tile_x << 4) + 16 - rect.left;
+				min_dent = (tile_x << 4) + 16 - rect.left - offset_x;
 			}
 
 			if (min_dent < 0)
@@ -280,8 +280,10 @@ module Collide {
 					next = (tile_x << 4) + 16 - do_collision_params_x.result.dent - rect.left;
 				}
 
-				options.delta.x = current_x = next;
-				options.result.x |= do_collision_params_x.result.attributes;
+				current_x = next;
+				if(options.result) {
+					options.result.x |= do_collision_params_x.result.attributes;
+				}
 				remaining_x = 0;
 				result = true;
 			}
@@ -308,7 +310,7 @@ module Collide {
 				delta = 16 - (current_tile_y & 0xF);
 				if (delta > remaining_y) delta = remaining_y;
 				dent = (current_tile_y & 0xf) + delta;
-				min_dent = rect.bottom - (tile_yindex << 4);
+				min_dent = rect.bottom + offset_y - (tile_yindex << 4);
 			} else {
 				var current_tile_y = (current_y + rect.top);
 				tile_yindex = (current_tile_y >> 4);
@@ -316,7 +318,7 @@ module Collide {
 				if (0 == delta) delta = 16, tile_yindex--;
 				if (delta > -remaining_y) delta = -remaining_y;
 				dent = ((16 - current_tile_y) & 0xf) + delta;
-				min_dent = (tile_yindex << 4) + 16 - rect.top;
+				min_dent = (tile_yindex << 4) + 16 - rect.top - offset_y;
 			}
 
 			if (min_dent < 0)
@@ -396,8 +398,10 @@ module Collide {
 					next = ((tile_yindex << 4) + 16 - do_collision_params_y.result.dent) - rect.top;
 				}
 
-				options.delta.y = current_y = next;
-				options.result.y |= do_collision_params_y.result.attributes;
+				current_y = next;
+				if(options.result) {
+					options.result.y |= do_collision_params_y.result.attributes;
+				}
 				remaining_y = 0;
 				result = true;
 			}
