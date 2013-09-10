@@ -6,92 +6,100 @@ module Game {
         color: 'blue'
     };
 
+    var sides = {
+        solid: new Collide.TileSideData(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        nil: new Collide.TileSideData(16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16),
+        bix: new Collide.TileSideData(16,16,16,16, 4, 4, 4, 4, 4, 4, 4, 4,16,16,16,16),
+        up: new Collide.TileSideData(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0),
+        down: new Collide.TileSideData(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+    };
+
     var collision: Collide.Collision = {
         width: 16,
         height: 16,
         palette: [
             // 0: empty block
             [{
-                collision_data_index: 0,
+                side: sides.nil,
                 collision_attributes: 1
             }, {
-                collision_data_index: 0,
+                side: sides.nil,
                 collision_attributes: 1
             }, {
-                collision_data_index: 0,
+                side: sides.nil,
                 collision_attributes: 1
             }, {
-                collision_data_index: 0,
+                side: sides.nil,
                 collision_attributes: 1
             }],
             // 1: solid block
             [{
-                collision_data_index: 1,
+                side: sides.solid,
                 collision_attributes: 1
             }, {
-                collision_data_index: 1,
+                side: sides.solid,
                 collision_attributes: 1
             }, {
-                collision_data_index: 1,
+                side: sides.solid,
                 collision_attributes: 1
             }, {
-                collision_data_index: 1,
+                side: sides.solid,
                 collision_attributes: 1
             }],
             // 2: small square
             [{
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1
             }, {
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1
             }, {
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1
             }, {
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1
             }],
             // 3: angle ◢   TODO:  ◤  ◣
             [{
-                collision_data_index: 1,
+                side: sides.solid,
                 collision_attributes: 1
             }, {
-                collision_data_index: 3,
+                side: sides.up,
                 collision_attributes: 1 | 2
             }, {
-                collision_data_index: 1,
+                side: sides.solid,
                 collision_attributes: 1
             }, {
-                collision_data_index: 3,
+                side: sides.up,
                 collision_attributes: 1 | 2
             }],
             // 4: angle ◥
             [{
-                collision_data_index: 1,
+                side: sides.solid,
                 collision_attributes: 1
             }, {
-                collision_data_index: 4,
-                collision_attributes: 1 | 2
+                side: sides.down,
+                collision_attributes: 1,
             }, {
-                collision_data_index: 3,
+                side: sides.up,
                 collision_attributes: 1
             }, {
-                collision_data_index: 1,
-                collision_attributes: 1 | 2
+                side: sides.solid,
+                collision_attributes: 1
             }],
             // X: magic
             [{
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1
             }, {
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1
             }, {
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1
             }, {
-                collision_data_index: 2,
+                side: sides.bix,
                 collision_attributes: 1,
                 info: magic
             }]
@@ -99,33 +107,24 @@ module Game {
         tiles: [
             0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 1, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 0, 2, 0, 0, 0,  0, 0, 0, 0, 0, 4, 0, 0,
+            1, 1, 1, 0, 2, 0, 0, 0,  0, 0, 0, 5, 0, 4, 0, 0,
             0, 0, 0, 1, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 1, 2, 2, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 1, 2, 0,  0, 1, 1, 1, 1, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 1, 0,  0, 0, 0, 0, 0, 0, 1, 0,
+            0, 5, 0, 0, 0, 1, 2, 0,  0, 1, 1, 1, 1, 0, 0, 0,
+            0, 0, 5, 0, 0, 0, 1, 0,  0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 1,  0, 0, 0, 0, 1, 0, 0, 0,
 
             0, 0, 0, 0, 0, 0, 0, 1,  0, 0, 0, 0, 0, 0, 1, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 1, 1, 1, 0, 0, 0,
+            0, 0, 0, 5, 0, 0, 0, 0,  0, 0, 1, 1, 1, 0, 0, 0,
             1, 0, 0, 0, 0, 0, 0, 0,  0, 1, 0, 0, 1, 0, 0, 1,
-            1, 0, 0, 0, 0, 0, 1, 1,  1, 0, 0, 0, 1, 0, 0, 1,
-            1, 0, 0, 0, 0, 0, 0, 0,  0, 0, 1, 0, 0, 0, 0, 1,
-            1, 0, 1, 1, 1, 0, 0, 0,  0, 0, 1, 0, 0, 0, 0, 1,
+            1, 0, 0, 5, 0, 0, 1, 1,  1, 0, 0, 0, 1, 0, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0,  0, 0, 1, 0, 0, 4, 0, 1,
+            1, 0, 1, 1, 1, 0, 0, 0,  0, 0, 1, 0, 0, 0, 4, 1,
             1, 4, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 3, 1,
             1, 1, 1, 1, 1, 1, 1, 1,  1, 1, 1, 1, 1, 1, 1, 1
         ],
-        box_collision: null,
-        point_collision: [
-            [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16],
-            [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [16,16,16,16, 4, 4, 4, 4, 4, 4, 4, 4,16,16,16,16],
-            [15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0],
-            [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-        ]
     };
 
-    collision.box_collision = collision.point_collision.map(Collide.ComputeBoxCollision);
     var ctx;
 
     var WIDTH = 512, HEIGHT = 512;
@@ -186,7 +185,7 @@ module Game {
                     ctx.closePath();
                     ctx.fill();
                     break;
-                    // TODO: case 4:
+                case 5:
                     ctx.save();
                     ctx.fillStyle = magic.color;
                     ctx.fillRect(x*16 + 4, y*16 + 4, 8, 8);
@@ -310,7 +309,7 @@ module Game {
         }
     };
 
-
+var count = 0;
     function movePlayer() {
         if(player.vx > 0) {
             player.vx >>= 1;

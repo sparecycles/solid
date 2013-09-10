@@ -1,10 +1,37 @@
 module Collide {
-    export interface PointCollision {
-        [_:number]: number; // .length = 16
-    }
+    export class TileSideData {
+        public point: number[];
+        public box: number[];
 
-    export interface BoxCollision {
-        [_:number]: number; // .length = 31
+        constructor(
+            _0:number, _1:number, _2:number, _3:number,
+            _4:number, _5:number, _6:number, _7:number,
+            _8:number, _9:number, _A:number, _B:number,
+            _C:number, _D:number, _E:number, _F:number
+        );
+        
+        constructor(
+            point: number[]
+        );
+
+        constructor(
+            _0:any, _1?:number, _2?:number, _3?:number,
+            _4?:number, _5?:number, _6?:number, _7?:number,
+            _8?:number, _9?:number, _A?:number, _B?:number,
+            _C?:number, _D?:number, _E?:number, _F?:number
+        ) {
+            if(typeof _0 === 'number') {
+                this.point = Array.prototype.slice.call(arguments, 0, 16);
+            } else {
+                this.point = <number[]>_0;
+            }
+
+            if(this.point.length != 16) {
+                throw new Error("wrong number of arguments to new TileSideData");
+            }
+
+            this.box = ComputeBoxCollision(this.point);
+        }
     }
 
     export interface Collision {
@@ -12,12 +39,10 @@ module Collide {
         height: number;
         palette: CollisionType[];
         tiles: number[];
-        box_collision: BoxCollision[];
-        point_collision: PointCollision[];
     }
 
     export interface CollisionInfo {
-        collision_data_index: number;
+        side: TileSideData;
         collision_attributes: number;
     }
 
@@ -432,7 +457,7 @@ module Collide {
             var min_collision_at = 16;
 
             for (i = start; i < end; i++) {
-                var collision_at = params.collision.point_collision[info.collision_data_index][i];
+                var collision_at = info.side.point[i];
 
                 if (collision_at < params.result.dent && collision_at >= params.min_dent && collision_at < min_collision_at) {
                     min_collision_at = collision_at;
@@ -454,7 +479,7 @@ module Collide {
         var attribute_mask = (params.attribute_mask & info.collision_attributes);
 
         if (attribute_mask) {
-            var collision_at = params.collision.box_collision[info.collision_data_index][params.collision_enter_exit_index];
+            var collision_at = info.side.box[params.collision_enter_exit_index];
 
             if (collision_at < params.result.dent) {
                 if (collision_at > params.min_dent) {
@@ -476,10 +501,10 @@ module Collide {
         return x < lo ? lo : x > hi ? hi : x;
     }
 
-    export function ComputeBoxCollision(point_collision: PointCollision): BoxCollision
+    function ComputeBoxCollision(point_collision: number[]): number[]
     {
         var least = 16;
-        var box_collision:BoxCollision = new Array(31);
+        var box_collision:number[] = new Array<number>(31);
 
         for(var index = 0; index < 16; index++)
         {
