@@ -2,12 +2,15 @@
 /// <reference path="sound.ts" />
 
 module Game {
+    var magic = {
+        color: 'blue'
+    };
 
     var collision: Collide.Collision = {
         width: 16,
         height: 16,
         palette: [
-            // empty block
+            // 0: empty block
             [{
                 collision_data_index: 0,
                 collision_attributes: 1
@@ -21,7 +24,7 @@ module Game {
                 collision_data_index: 0,
                 collision_attributes: 1
             }],
-            // solid block
+            // 1: solid block
             [{
                 collision_data_index: 1,
                 collision_attributes: 1
@@ -35,7 +38,7 @@ module Game {
                 collision_data_index: 1,
                 collision_attributes: 1
             }],
-            // small square
+            // 2: small square
             [{
                 collision_data_index: 2,
                 collision_attributes: 1
@@ -49,7 +52,7 @@ module Game {
                 collision_data_index: 2,
                 collision_attributes: 1
             }],
-            // angle ◢
+            // 3: angle ◢   TODO:  ◤  ◣
             [{
                 collision_data_index: 1,
                 collision_attributes: 1
@@ -63,11 +66,40 @@ module Game {
                 collision_data_index: 3,
                 collision_attributes: 1 | 2
             }],
+            // 4: angle ◥
+            [{
+                collision_data_index: 1,
+                collision_attributes: 1
+            }, {
+                collision_data_index: 4,
+                collision_attributes: 1 | 2
+            }, {
+                collision_data_index: 3,
+                collision_attributes: 1
+            }, {
+                collision_data_index: 1,
+                collision_attributes: 1 | 2
+            }],
+            // X: magic
+            [{
+                collision_data_index: 2,
+                collision_attributes: 1
+            }, {
+                collision_data_index: 2,
+                collision_attributes: 1
+            }, {
+                collision_data_index: 2,
+                collision_attributes: 1
+            }, {
+                collision_data_index: 2,
+                collision_attributes: 1,
+                info: magic
+            }]
         ],
         tiles: [
             0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 1, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 0, 2, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 0, 2, 0, 0, 0,  0, 0, 0, 0, 0, 4, 0, 0,
             0, 0, 0, 1, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 1, 2, 2, 0,  0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 1, 2, 0,  0, 1, 1, 1, 1, 0, 0, 0,
@@ -80,7 +112,7 @@ module Game {
             1, 0, 0, 0, 0, 0, 1, 1,  1, 0, 0, 0, 1, 0, 0, 1,
             1, 0, 0, 0, 0, 0, 0, 0,  0, 0, 1, 0, 0, 0, 0, 1,
             1, 0, 1, 1, 1, 0, 0, 0,  0, 0, 1, 0, 0, 0, 0, 1,
-            1, 2, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 3, 1,
+            1, 4, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 3, 1,
             1, 1, 1, 1, 1, 1, 1, 1,  1, 1, 1, 1, 1, 1, 1, 1
         ],
         box_collision: null,
@@ -128,7 +160,7 @@ module Game {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
         ctx.fillStyle = "black";
         var tileIndex = 0;
-        for(var y = 0; y < collision.height; y++)   
+        for(var y = 0; y < collision.height; y++)
         for(var x = 0; x < collision.width; x++, tileIndex++) {
             var tile = collision.tiles[tileIndex];
             switch(tile) {
@@ -147,11 +179,24 @@ module Game {
                     ctx.closePath();
                     ctx.fill();
                     break;
+                case 4:
+                    ctx.moveTo(x*16, y*16);
+                    ctx.lineTo(x*16+16, y*16);
+                    ctx.lineTo(x*16+16, y*16+16);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    // TODO: case 4:
+                    ctx.save();
+                    ctx.fillStyle = magic.color;
+                    ctx.fillRect(x*16 + 4, y*16 + 4, 8, 8);
+                    ctx.restore();
+                    break;
             }
         }
         ctx.fillStyle = player.color;
 
-        ctx.fillRect(player.rect.left, player.rect.top, 
+        ctx.fillRect(player.rect.left, player.rect.top,
             player.rect.right - player.rect.left,
             player.rect.bottom - player.rect.top);
     }
@@ -231,47 +276,36 @@ module Game {
             rect: Collide.Rect;
             delta: { x: number; y: number; };
             mask: number;
-            result?: { 
-                x: number;
-                y: number;
-            };
-        }) {  
+            result?: Collide.Result;
+        }) {
             var collided = false;
             var flags = { x: 0, y: 0 };
-            var result = { x: 0, y: 0 };
+            var result = new Collide.Result();
 
             if(Collide.collide({
                 collision: environment,
                 rect: info.rect,
                 delta: info.delta,
-                result: result,
+                result: info.result,
                 mask: info.mask
             })) {
                 collided = true;
-                if (result.x) flags.x = result.x;
-                if (result.y) flags.y = result.y;
             }
 
             obstacles.forEach((obstacle) => {
                 var result = { x: 0, y: 0 };
-    
+
                 if(World.collide({
                     rect: info.rect,
                     delta: info.delta,
-                    result: result,
+                    result: info.result,
                     mask: info.mask,
                     offset: obstacle
                 })) {
                     collided = true;
-                    if (result.x) flags.x = result.x;
-                    if (result.y) flags.y = result.y;
                 }
             });
 
-            if(info.result) {
-                info.result.x |= flags.x;
-                info.result.y |= flags.y;
-            }
             return collided;
         }
     };
@@ -287,12 +321,12 @@ module Game {
         if(pad.left) {
             player.vx = Math.max(player.vx-ftofp(1), -ftofp(3));
         }
-        
+
         if(pad.right) {
             player.vx = Math.min(player.vx+ftofp(1), +ftofp(3));
         }
 
-        if(pad.up && player.collisionInfo.down) {
+        if(pad.up && player.collisionInfo.down && player.collisionInfo.down.attributes) {
             player.vy =  -ftofp(5);
             player.subpixel.y = 0;
             player.collisionInfo.down = null;
@@ -310,11 +344,11 @@ module Game {
         };
 
         var delta = { x: motion.x, y: motion.y };
-        
+
         player.subpixel.x &= FPMASK;
         player.subpixel.y &= FPMASK;
 
-        var result: any = { };
+        var result = new Collide.Result();
 
         World.collide({
             rect: player.rect,
@@ -323,7 +357,7 @@ module Game {
             mask: 1
         });
 
-        if(result.x & CollisionAttributes.STEPS)
+        if(result.x.attributes & CollisionAttributes.STEPS)
         {
             delta = { x: 0, y: -1 };
 
@@ -347,7 +381,7 @@ module Game {
 
         moveRect(player.rect, delta);
 
-        if(player.collisionInfo.down & CollisionAttributes.STEPS) {
+        if(player.collisionInfo.down && player.collisionInfo.down.attributes & CollisionAttributes.STEPS) {
             var suck = { x: 0, y: 3 };
 
             if(World.collide({
@@ -362,25 +396,32 @@ module Game {
 
         if (motion.x < 0) {
             player.collisionInfo.left = result.x;
-            player.collisionInfo.right = 0;
+            player.collisionInfo.right = null;
         } else if(motion.x > 0) {
-            player.collisionInfo.left = 0;
-            player.collisionInfo.right = result.x;            
+            player.collisionInfo.left = null;
+            player.collisionInfo.right = result.x;
         }
 
         if (motion.y < 0) {
             player.collisionInfo.up = result.y;
-            player.collisionInfo.down = 0;
+            player.collisionInfo.down = null;
         } else if(motion.y > 0) {
-            player.collisionInfo.up = 0;
+            player.collisionInfo.up = null;
             player.collisionInfo.down = result.y;
         }
 
-        if(result.x) {
+        if(player.collisionInfo.down) {
+            player.collisionInfo.down.tiles.forEach((tile) => {
+                if(tile.info)
+                    tile.info.color = 'red';
+            });
+        }
+
+        if(result.x.attributes) {
             player.vx = 0;
             player.subpixel.x = 0;
         }
-        if(result.y) {
+        if(result.y.attributes) {
             player.vy = 0;
             player.subpixel.y = 0;
         }
@@ -404,22 +445,22 @@ module Game {
     var player = {
         rect: {
             left: 40,
-            right: 40 + 8,
+            right: 40 + 3,
             top: 150,
-            bottom: 150 + 8
+            bottom: 150 + 3
         },
         collisionInfo: {
-            up: <any>null,
-            left: <any>null,
-            right: <any>null,
-            down: <any>null
+            up: <Collide.AxisResult>null,
+            left: <Collide.AxisResult>null,
+            right: <Collide.AxisResult>null,
+            down: <Collide.AxisResult>null
         },
         color: 'red',
         vx: 0,
         vy: 0,
         subpixel: { x: 0, y: 0 }
     };
-    
+
     function tick() {
         movePlayer();
     }
