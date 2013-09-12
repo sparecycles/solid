@@ -409,6 +409,7 @@ var count = 0;
             player.collisionInfo.down = result.y;
         }
 
+        magic.color = 'blue';
         if(player.collisionInfo.down) {
             player.collisionInfo.down.tiles.forEach((tile) => {
                 if(tile.info)

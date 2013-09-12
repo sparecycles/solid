@@ -166,12 +166,7 @@ module Collide {
         var b_tile_x = b_tile_dx_abs >> 1;
         var b_tile_y = b_tile_dy_abs >> 1;
 
-        var step = null;
-
-        choice();
-        while(step) {
-            step();
-            choice();
+        while(iterate()) {
         }
 
         options.delta.x = current_x - offset_x;
@@ -189,7 +184,7 @@ module Collide {
 
         return result;
 
-        function choice() {
+        function iterate() {
             // reentry point for bresenham selector.
             // the bresenham selector chooses whether to
             // check tiles in the x or y directions.
@@ -198,25 +193,25 @@ module Collide {
                 b_tile_y += b_tile_dy_abs;
                 if (b_tile_y >= b_tile_dx_abs) {
                     b_tile_y -= b_tile_dx_abs + b_tile_dy_abs;
-                    if (remaining_y) return void (step = move_y);
+                    if (remaining_y) return move_y();
                 }
-                if (remaining_x) return void (step = move_x);
+                if (remaining_x) return move_x();
             } else {
                 b_tile_x += b_tile_dx_abs;
                 if (b_tile_x >= b_tile_dy_abs) {
                     b_tile_x -= b_tile_dy_abs + b_tile_dx_abs;
-                    if (remaining_x) return void (step = move_x);
+                    if (remaining_x) return move_x();
                 }
-                if (remaining_y) return void (step = move_y);
+                if (remaining_y) return move_y();
             }
 
             // clear out remaining x and y motions when the bresenham terminates.
             // (does this need to be done?)
-            if (remaining_x) return void (step = move_x);
-            if (remaining_y) return void (step = move_y);
+            if (remaining_x) return move_x();
+            if (remaining_y) return move_y();
 
             // nothing remaining, exit loop.
-            return void (step = null);
+            return false;
         }
 
         function move_x() {
@@ -265,7 +260,7 @@ module Collide {
                     current_x -= delta;
                 }
 
-                return; // go back to bresenham selector
+                return true; // go back to bresenham selector
             }
 
             do_collision_params_x.min_dent = min_dent;
@@ -329,6 +324,7 @@ module Collide {
                 remaining_x = 0;
                 result = true;
             }
+            return true;
         }
 
         function move_y() {
@@ -376,7 +372,7 @@ module Collide {
                     current_y -= delta;
                 }
 
-                return; // go back to bresenham selector
+                return true; // go back to bresenham selector
             }
 
             tile_y = tile_yindex * collision.width;
@@ -444,6 +440,8 @@ module Collide {
                 remaining_y = 0;
                 result = true;
             }
+
+            return false;
         }
     }
 
