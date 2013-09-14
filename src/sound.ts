@@ -14,22 +14,21 @@ module Sound {
         var nextSFXHandle = 0;
 
         export function playSFX(t: any):number {
-            if(paused) throw new Error("PlaySFX while paused");
-
-            var handle = nextSFXHandle++;       
+            if(paused) return -1;
+            var handle = nextSFXHandle++;
             sfx[handle] = t.play();
             t.on("ended", function() {
-                this.pause();
                 delete sfx[handle];
             })
             return handle;
         }
 
         export function startAmbient(name: string, t: any) {
-            if(paused) throw new Error("playAmbient while paused");
-            
             pauseAmbient(name);
-            (ambient[name] = t).bang().play();
+            var sound = (ambient[name] = t).bang();
+            if(!paused) {
+              sound.play();
+            }
         }
 
         export function pauseAmbient(name: string) {
@@ -53,10 +52,13 @@ module Sound {
             for(var key in sfx) {
                 sfx[key].pause();
             }
+            timbre.pause();
             paused = true;
         }
 
         export function resumeAll() {
+            timbre.play();
+
             for(var key in ambient) {
                 ambient[key].play();
             }
@@ -124,9 +126,10 @@ module Sound {
         export function recordSounds(cb) {
             function recordNext() {
                 if(recording_queue.length == 0) {
+                    timbre.pause();
                     cb();
                 } else {
-                    recording_queue.pop()(function() { 
+                    recording_queue.pop()(function() {
                         setTimeout(recordNext, 1);
                     });
                 }
@@ -141,13 +144,13 @@ module Sound {
 
             var tone = T("env", {table: [.7, [1, ".3sec"], [0, ".2sec"]]},
                         T("sin", {freq: xline, mul: 2})).bang();
-            return tone;            
+            return tone;
         });
 
         export var attack = SFXData.sample(SFXData.SoundFlags.Common | SFXData.SoundFlags.Small, () => {
             var tone = T("env", {table: [.7, [1, ".1sec"], [0, ".1sec"]]},
                         T("pink")).bang();
-            return tone;            
+            return tone;
         });
     }
 
@@ -156,13 +159,18 @@ module Sound {
             Core.playSFX(SFX[name]());
         }
     }
-    
+
     var next: Function;
 
     export function load(cb) {
         SFXData.recordSounds(cb);
     }
 
-
-
+    export function enable(enable: boolean) {
+       if(enable) {
+          Core.resumeAll();
+       } else {
+          Core.pauseAll();
+       }
+    }
 }

@@ -125,38 +125,55 @@ module Game {
         ],
     };
 
-    var ctx;
+    var bgctx, fgctx;
 
-    var WIDTH = 512, HEIGHT = 512;
-
-    export function load(cb) {
-        var canvasElement = <HTMLCanvasElement>document.querySelector("#canvas");
+    function loadCtx(id) {
+        var canvasElement = <HTMLCanvasElement>document.getElementById(id);
         canvasElement.width = WIDTH;
         canvasElement.height = HEIGHT;
-        ctx = canvasElement.getContext('2d');
+        var ctx = canvasElement.getContext('2d');
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+        return ctx;
+    }
+
+    var WIDTH = 256, HEIGHT = 256;
+
+    export function load(cb) {
+        bgctx = loadCtx("game-bg");
+        fgctx = loadCtx("game-fg");
 
         return Sound.load(cb);
     }
 
     export function start() {
-        var time = Date.now();
+        var time = null;
 
-        function play() {
-            var now = Date.now();
-            var dt = now - time;
-            time = now;
-            if(update(dt)) {
+        function play(timestamp) {
+            var dt = time ? timestamp - time : 0;
+            time = timestamp;
+            if(dt < 0) dt = 0;
+            var ticks = update(dt);
+            if(ticks > 2) {
+               // prevent update-limited bottlenecking
+               time = Date.now();
+            }
+            (document.getElementById("debug:ticks") || <any>{}).textContent = ticks;
+            if(ticks > 0) {
                 render();
             }
             requestAnimationFrame(play);
         }
 
-        play();
+        requestAnimationFrame(play);
     }
 
-    function render() {
-        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    function renderbg(ctx) {
+        // hard reset the canvas.
+        var width = ctx.canvas.width;
+        ctx.canvas.width = 0;
+        ctx.canvas.width = width;
+        // for some reason this results in a memory/cpu leak
+        //ctx.clearRect(0, 0, WIDTH, HEIGHT);
         ctx.fillStyle = "black";
         var tileIndex = 0;
         for(var y = 0; y < collision.height; y++)
@@ -193,6 +210,16 @@ module Game {
                     break;
             }
         }
+    }
+
+    function renderfg(ctx) {
+        // hard reset the canvas... because.
+        var width = ctx.canvas.width;
+        ctx.canvas.width = 0;
+        ctx.canvas.width = width;
+        // for some reason this results in a memory/cpu leak
+        //ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
         ctx.fillStyle = player.color;
 
         ctx.fillRect(player.rect.left, player.rect.top,
@@ -200,16 +227,33 @@ module Game {
             player.rect.bottom - player.rect.top);
     }
 
+    var once = 0;
+    function render() {
+       if(!once) renderbg(bgctx);
+       once = 0;
+       renderfg(fgctx);
+    }
+
     var frame = 0;
     function update(dt: number) {
+        var ticks = 0;
         frame += dt;
-        var ticked = false;
+        if(!enabled) {
+           frame = 0;
+           return -1;
+        }
+        if(frame < 0) {
+          frame = 0;
+        }
         while(frame >= 17) {
+            ticks++;
             frame -= 17;
             tick();
-            ticked = true;
+            if(ticks >= 5) {
+               frame = 0;
+            }
         }
-        return ticked;
+        return ticks;
     }
 
     var KEY_LEFT = 37;
@@ -463,5 +507,9 @@ var count = 0;
 
     function tick() {
         movePlayer();
+    }
+    var enabled = true;
+    export function enable(value) {
+       enabled = value;
     }
 }
