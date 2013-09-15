@@ -1,6 +1,21 @@
 /// <reference path="collide.ts" />
 /// <reference path="sound.ts" />
 
+Object.defineProperty(CanvasRenderingContext2D.prototype, 'imageSmoothingEnabled', {
+  get: function() {
+    return this.webkitImageSmoothingEnabled;
+  },
+  set: function(value: boolean) {
+    this.webkitImageSmoothingEnabled = value;
+  },
+  configurable: false,
+  enumerable: true
+});
+
+interface CanvasRenderingContext2D {
+  imageSmoothingEnabled: boolean;
+}
+
 module Game {
     var magic = {
         color: 'blue'
@@ -60,7 +75,7 @@ module Game {
                 side: sides.bix,
                 collision_attributes: 1
             }],
-            // 3: angle ◢   TODO:  ◤  ◣
+            // 3: angle ◢   TODO:  ◤
             [{
                 side: sides.solid,
                 collision_attributes: 1
@@ -102,25 +117,40 @@ module Game {
                 side: sides.bix,
                 collision_attributes: 1,
                 info: magic
+            }],
+            // ◣ : magic
+            [{
+                side: sides.up,
+                collision_attributes: 1 | 2
+            }, {
+                side: sides.solid,
+                collision_attributes: 1
+            }, {
+                side: sides.solid,
+                collision_attributes: 1
+            }, {
+                side: sides.down,
+                collision_attributes: 1 | 2,
+                info: magic
             }]
         ],
         tiles: [
             0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 1, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 0, 2, 0, 0, 0,  0, 0, 0, 5, 0, 4, 0, 0,
-            0, 0, 0, 1, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 2, 2, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-            0, 5, 0, 0, 0, 1, 2, 0,  0, 1, 1, 1, 1, 0, 0, 0,
-            0, 0, 5, 0, 0, 0, 1, 0,  0, 0, 0, 0, 0, 0, 1, 0,
-            0, 0, 0, 0, 0, 0, 0, 1,  0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 6, 0, 2, 0, 0, 0,  0, 0, 0, 5, 0, 4, 0, 0,
+            0, 0, 0, 6, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 6, 2, 2, 0,  0, 0, 0, 0, 0, 0, 0, 0,
+            0, 5, 0, 0, 0, 6, 2, 0,  0, 1, 1, 1, 1, 0, 0, 0,
+            0, 0, 5, 0, 0, 0, 6, 0,  0, 0, 0, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 6,  0, 0, 0, 0, 1, 0, 0, 0,
 
             0, 0, 0, 0, 0, 0, 0, 1,  0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 5, 0, 0, 0, 0,  0, 0, 1, 1, 1, 0, 0, 0,
             1, 0, 0, 0, 0, 0, 0, 0,  0, 1, 0, 0, 1, 0, 0, 1,
             1, 0, 0, 5, 0, 0, 1, 1,  1, 0, 0, 0, 1, 0, 0, 1,
             1, 0, 0, 0, 0, 0, 0, 0,  0, 0, 1, 0, 0, 4, 0, 1,
-            1, 0, 1, 1, 1, 0, 0, 0,  0, 0, 1, 0, 0, 0, 4, 1,
-            1, 4, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 3, 1,
+            1, 0, 1, 1, 1, 0, 0, 0,  0, 0, 1, 0, 0, 3, 4, 1,
+            1, 4, 0, 0, 0, 0, 0, 0,  0, 6, 0, 0, 3, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 1, 1,  1, 1, 1, 1, 1, 1, 1, 1
         ],
     };
@@ -133,7 +163,19 @@ module Game {
         canvasElement.height = HEIGHT;
         var ctx = canvasElement.getContext('2d');
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.imageSmoothingEnabled = false;
         return ctx;
+    }
+
+    function clearCtx(ctx) {
+      if(true) {
+        ctx.canvas.width = ctx.canvas.width;
+      } else {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
+      }
     }
 
     var WIDTH = 256, HEIGHT = 256;
@@ -168,12 +210,7 @@ module Game {
     }
 
     function renderbg(ctx) {
-        // hard reset the canvas.
-        var width = ctx.canvas.width;
-        ctx.canvas.width = 0;
-        ctx.canvas.width = width;
-        // for some reason this results in a memory/cpu leak
-        //ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        clearCtx(ctx);
         ctx.fillStyle = "black";
         var tileIndex = 0;
         for(var y = 0; y < collision.height; y++)
@@ -189,6 +226,7 @@ module Game {
                     ctx.fillRect(x*16 + 4, y*16 + 4, 8, 8);
                     break;
                 case 3:
+                    ctx.beginPath();
                     ctx.moveTo(x*16, y*16+16);
                     ctx.lineTo(x*16+16, y*16);
                     ctx.lineTo(x*16+16, y*16+16);
@@ -196,6 +234,7 @@ module Game {
                     ctx.fill();
                     break;
                 case 4:
+                    ctx.beginPath();
                     ctx.moveTo(x*16, y*16);
                     ctx.lineTo(x*16+16, y*16);
                     ctx.lineTo(x*16+16, y*16+16);
@@ -208,17 +247,23 @@ module Game {
                     ctx.fillRect(x*16 + 4, y*16 + 4, 8, 8);
                     ctx.restore();
                     break;
+                case 6:
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x*16, y*16);
+                    ctx.lineTo(x*16, y*16+16);
+                    ctx.lineTo(x*16+16, y*16+16);
+                    ctx.closePath();
+                    ctx.fillStyle = magic.color;
+                    ctx.fill();
+                    ctx.restore();
+                    break;
             }
         }
     }
 
     function renderfg(ctx) {
-        // hard reset the canvas... because.
-        var width = ctx.canvas.width;
-        ctx.canvas.width = 0;
-        ctx.canvas.width = width;
-        // for some reason this results in a memory/cpu leak
-        //ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        clearCtx(ctx);
 
         ctx.fillStyle = player.color;
 
@@ -362,7 +407,7 @@ var count = 0;
         }
 
         if(pad.left) {
-            player.vx = Math.max(player.vx-ftofp(1), -ftofp(3));
+            player.vx = Math.max(player.vx+ftofp(-1), ftofp(-3));
         }
 
         if(pad.right) {
@@ -370,7 +415,7 @@ var count = 0;
         }
 
         if(pad.up && player.collisionInfo.down && player.collisionInfo.down.attributes) {
-            player.vy =  -ftofp(5);
+            player.vy = ftofp(-5);
             player.subpixel.y = 0;
             player.collisionInfo.down = null;
             Sound.sfx('jump');
@@ -381,7 +426,7 @@ var count = 0;
         player.subpixel.x += player.vx;
         player.subpixel.y += player.vy;
 
-        var motion = {
+        var motion, original_motion = motion = {
             x: fptoi(player.subpixel.x),
             y: fptoi(player.subpixel.y)
         };
@@ -402,6 +447,7 @@ var count = 0;
 
         if(result.x.attributes & CollisionAttributes.STEPS)
         {
+            motion = { x: motion.x - delta.x, y: motion.y - delta.y };
             delta = { x: 0, y: -1 };
 
             if(!World.collide({
@@ -437,28 +483,41 @@ var count = 0;
             }
         }
 
-        if (motion.x < 0) {
+        if (original_motion.x < 0) {
             player.collisionInfo.left = result.x;
             player.collisionInfo.right = null;
-        } else if(motion.x > 0) {
+        } else if(original_motion.x > 0) {
             player.collisionInfo.left = null;
             player.collisionInfo.right = result.x;
         }
 
-        if (motion.y < 0) {
+        if (original_motion.y < 0) {
             player.collisionInfo.up = result.y;
             player.collisionInfo.down = null;
-        } else if(motion.y > 0) {
+        } else if(original_motion.y > 0) {
             player.collisionInfo.up = null;
             player.collisionInfo.down = result.y;
         }
 
-        magic.color = 'blue';
+        var stepping = false;
         if(player.collisionInfo.down) {
             player.collisionInfo.down.tiles.forEach((tile) => {
-                if(tile.info)
-                    tile.info.color = 'red';
+                if(tile.info) {
+                    stepping = true;
+                }
             });
+        }
+        if(stepping) {
+          if(magic.color != 'red') {
+              Sound.music('stone', T("sin", { freq: 800 - player.rect.bottom }));
+          } else {
+            var tone = Sound.music('stone');
+            if(tone) tone.set('freq', 800 - player.rect.bottom);
+          }
+          magic.color = 'red';
+        } else {
+          magic.color = 'blue';
+          Sound.music('stone', false);
         }
 
         if(result.x.attributes) {
