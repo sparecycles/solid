@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>solid</title>
+    <script src="lib/timbre.dev.js" ></script>
+    <script src="lib/subcollider.js" ></script>
+    <script src="src/collide.js" ></script>
+    <script src="src/sound.js" ></script>
+    <script src="src/game.js" ></script>
+    <style>
+      #canvas-border {
+        border: 2px inset #CCC;
+        position: relative;
+        background: white;
+      }
+      #canvas-border, .game-canvas {
+        width: 256px;
+        height: 256px;
+        display: inline-block;
+      }
+      .game-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      body {
+         background: #CDC;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="position: fixed; top: 10px; right: 10px">
+    <div>
+      <label for="play">play:</label><input type="checkbox" id="play" checked />
+    </div>
+    <div>
+      <label for="sound">sound:</label><input type="checkbox" id="sound" checked />
+    </div>
+    <div>Ticks per update: <span id="debug:ticks" />0</div>
+    </div>
+    <center>
+      <div id="canvas-border">
+        <canvas id="game-bg" class="game-canvas" ></canvas>
+        <canvas id="game-fg" class="game-canvas" ></canvas>
+      </div>
+    </center>
+    <script>
+      Game.load(function() {
+        Game.start();
+      });
+      document.getElementById("sound")
+        .addEventListener("change", function(event) {
+           Sound.enable(event.target.checked);
+        });
+      document.getElementById("play")
+        .addEventListener("change", function(event) {
+           Game.enable(event.target.checked);
+        });
+    </script>
+  </body>
+</html>
