@@ -1,4 +1,4 @@
-SRC=src/game.ts src/collide.ts src/sound.ts
+SRC=src/game.ts src/collide.ts src/sound.ts src/animationframe.ts
 all: $(SRC:.ts=.js)
 
 %.js: %.ts
@@ -16,6 +16,7 @@ gh-pages: all
 	mkdir gh-pages/src
 	cp src/*.js gh-pages/src
 	cp index.html gh-pages/
-	(cd gh-pages && git add . && git commit -m "generated commit" && git push origin gh-pages -f)
+	echo git branch (cd gh-pages && git add . && git commit -m "generated from `git branch`" && git push origin gh-pages -f)
+	rm -f gh-pages
 
 .PHONY: clean gh-pages

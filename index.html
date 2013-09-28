@@ -6,6 +6,7 @@
     <script src="lib/subcollider.js" ></script>
     <script src="src/collide.js" ></script>
     <script src="src/sound.js" ></script>
+    <script src="src/animationframe.js" ></script>
     <script src="src/game.js" ></script>
     <style>
       #canvas-border {
@@ -33,9 +34,6 @@
     <div>
       <label for="play">play:</label><input type="checkbox" id="play" checked />
     </div>
-    <div>
-      <label for="sound">sound:</label><input type="checkbox" id="sound" checked />
-    </div>
     <div>Ticks per update: <span id="debug:ticks" />0</div>
     </div>
     <center>
@@ -48,12 +46,9 @@
       Game.load(function() {
         Game.start();
       });
-      document.getElementById("sound")
-        .addEventListener("change", function(event) {
-           Sound.enable(event.target.checked);
-        });
       document.getElementById("play")
         .addEventListener("change", function(event) {
+           Sound.enable(event.target.checked);
            Game.enable(event.target.checked);
         });
     </script>

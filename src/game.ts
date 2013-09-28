@@ -1,5 +1,6 @@
 /// <reference path="collide.ts" />
 /// <reference path="sound.ts" />
+/// <reference path="animationframe.ts" />
 
 Object.defineProperty(CanvasRenderingContext2D.prototype, 'imageSmoothingEnabled', {
   get: function() {
@@ -187,7 +188,12 @@ module Game {
         return Sound.load(cb);
     }
 
+    var currentAnimationFrameRequest: number = null;
     export function start() {
+        if(currentAnimationFrameRequest) {
+            return;
+        }
+
         var time = null;
 
         function play(timestamp) {
@@ -203,10 +209,19 @@ module Game {
             if(ticks > 0) {
                 render();
             }
-            requestAnimationFrame(play);
+            if(enabled) {
+                currentAnimationFrameRequest = AnimationFrame.request(play);
+            }
         }
 
-        requestAnimationFrame(play);
+        currentAnimationFrameRequest = AnimationFrame.request(play);
+    }
+
+    export function stop() {
+        if(currentAnimationFrameRequest) {
+            AnimationFrame.cancel(currentAnimationFrameRequest);
+            currentAnimationFrameRequest = null;
+        }
     }
 
     function renderbg(ctx) {
@@ -569,6 +584,11 @@ var count = 0;
     }
     var enabled = true;
     export function enable(value) {
-       enabled = value;
+        enabled = value;
+        if(!enabled) {
+            stop();
+        } else {
+            start();
+        }
     }
 }
