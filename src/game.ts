@@ -1,21 +1,8 @@
 /// <reference path="collide.ts" />
 /// <reference path="sound.ts" />
 /// <reference path="animationframe.ts" />
+/// <reference path="canvas-ext.ts" />
 
-Object.defineProperty(CanvasRenderingContext2D.prototype, 'imageSmoothingEnabled', {
-  get: function() {
-    return this.webkitImageSmoothingEnabled;
-  },
-  set: function(value: boolean) {
-    this.webkitImageSmoothingEnabled = value;
-  },
-  configurable: false,
-  enumerable: true
-});
-
-interface CanvasRenderingContext2D {
-  imageSmoothingEnabled: boolean;
-}
 
 module Game {
     var magic = {
@@ -165,12 +152,15 @@ module Game {
         var ctx = canvasElement.getContext('2d');
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.imageSmoothingEnabled = false;
+        ctx.backingStorePixelRatio = 0.5;
         return ctx;
     }
 
     function clearCtx(ctx) {
       if(true) {
         ctx.canvas.width = ctx.canvas.width;
+        ctx.imageSmoothingEnabled = false;
+        ctx.backingStorePixelRatio = 0.5;
       } else {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);

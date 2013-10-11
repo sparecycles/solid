@@ -1,4 +1,4 @@
-SRC=src/game.ts src/collide.ts src/sound.ts src/animationframe.ts
+SRC=$(wildcard src/*.ts)
 all: $(SRC:.ts=.js)
 
 %.js: %.ts
